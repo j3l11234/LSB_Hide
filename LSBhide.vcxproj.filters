@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Bmp">
+      <UniqueIdentifier>{dbbf49b2-e2c3-470c-ba66-d18e31d2f2b6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -33,6 +36,15 @@
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Crc32.hpp">
+      <Filter>Bmp</Filter>
+    </ClInclude>
+    <ClInclude Include="LbsHide.hpp">
+      <Filter>Bmp</Filter>
+    </ClInclude>
+    <ClInclude Include="MyBMP.h">
+      <Filter>Bmp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LSBhide.cpp">
@@ -43,6 +55,9 @@
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MyBMP.cpp">
+      <Filter>Bmp</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
