@@ -11,6 +11,8 @@
 #endif
 
 
+int Crc32::CRC32[256];
+char Crc32::init;
 // CLSBhideApp
 
 BEGIN_MESSAGE_MAP(CLSBhideApp, CWinApp)

@@ -29,8 +29,10 @@ protected:
 	CStatic m_Pic_Embed; //嵌入图控件
 	CString m_szBmpFileName;
 	CImage m_Image_Original;
+	CImage m_Image_Embed;
 	CEdit m_Edit_LOG;
 	MyBMP *m_pMyBmp = NULL;
+	LbsHide lbsHide;
 
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
@@ -42,4 +44,8 @@ protected:
 public:
 	afx_msg void OnBnClickedBtnOpen();
 	afx_msg void OnDestroy();
+	afx_msg void OnBnClickedBtnRead();
+	afx_msg void OnBnClickedBtnEmbed();
+	CEdit m_Edit_Data;
+	afx_msg void OnBnClickedBtnSave();
 };

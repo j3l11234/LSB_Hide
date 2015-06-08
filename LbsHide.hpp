@@ -72,16 +72,24 @@ public:
 		LbsData *lbsHideData = new LbsData;
 		lbsHideData->length = bytestoInt(lbsData, 0);
 		lbsHideData->crc32 = bytestoInt(lbsData, 4);
-
-		int crc32 = Crc32::crc32(lbsHideData->data, lbsHideData->length);
+		
 		unsigned int maxLength = bmp->getMaxLbsLength() - 8;
-		if (lbsHideData->length > maxLength || lbsHideData->crc32 != crc32) {
+		if (lbsHideData->length > maxLength) {
+			delete []lbsData;
+			delete lbsHideData;
 			return NULL;
 		}
 
 		lbsHideData->data = new BYTE[lbsHideData->length];
 		memcpy(lbsHideData->data, lbsData + 8, lbsHideData->length);
+		int crc32 = Crc32::crc32(lbsHideData->data, lbsHideData->length);
+		if (lbsHideData->crc32 != crc32) {
+			delete[]lbsData;
+			delete lbsHideData;
+			return NULL;
+		}
 
+		delete[]lbsData;
 		return lbsHideData;
 	}
 
@@ -128,4 +136,3 @@ public:
 	}
 
 };
-

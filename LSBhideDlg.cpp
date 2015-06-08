@@ -60,6 +60,7 @@ void CLSBhideDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PIC_ORIGINAL, m_Pic_Original);
 	DDX_Control(pDX, IDC_PIC_EMBED, m_Pic_Embed);
 	DDX_Control(pDX, IDC_EDIT_LOG, m_Edit_LOG);
+	DDX_Control(pDX, IDC_EDIT_DATA, m_Edit_Data);
 }
 
 BEGIN_MESSAGE_MAP(CLSBhideDlg, CDialogEx)
@@ -70,6 +71,7 @@ BEGIN_MESSAGE_MAP(CLSBhideDlg, CDialogEx)
 	ON_WM_DESTROY()
 	ON_BN_CLICKED(IDC_BTN_READ, &CLSBhideDlg::OnBnClickedBtnRead)
 	ON_BN_CLICKED(IDC_BTN_EMBED, &CLSBhideDlg::OnBnClickedBtnEmbed)
+	ON_BN_CLICKED(IDC_BTN_SAVE, &CLSBhideDlg::OnBnClickedBtnSave)
 END_MESSAGE_MAP()
 
 
@@ -107,6 +109,8 @@ BOOL CLSBhideDlg::OnInitDialog()
 	// TODO:  在此添加额外的初始化代码
 	m_Pic_Original.ModifyStyle(0xF, SS_BITMAP | SS_CENTERIMAGE);
 	m_Pic_Embed.ModifyStyle(0xF, SS_BITMAP | SS_CENTERIMAGE);
+	//m_Edit_Data.ModifyStyle(0,  WS_VSCROLL | WS_HSCROLL);
+	//m_Edit_LOG.ModifyStyle(0,  WS_VSCROLL | WS_HSCROLL);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -250,6 +254,17 @@ void CLSBhideDlg::OnBnClickedBtnRead()
 		MessageBox(_T("文件未打开"), _T("错误"));
 		return;
 	}
+	LbsData *lbsdata = lbsHide.getLbsHideData(m_pMyBmp);
+	if (lbsdata == NULL) {
+		MessageBox(_T("LBS读取错误"), _T("错误"));
+		return;
+	}
+
+	CString text;
+	CString data(lbsdata->data);
+	text.Format(_T("读取完成：length=%d, crc32=%8x \r\n====data=====\r\n%s\r\n====data=====\r\n"), lbsdata->length, lbsdata->crc32, data);
+	addToLog(text,true);
+	delete lbsdata;
 }
 
 
@@ -259,4 +274,68 @@ void CLSBhideDlg::OnBnClickedBtnEmbed()
 		MessageBox(_T("文件未打开"), _T("错误"));
 		return;
 	}
+
+	CString data;
+	m_Edit_Data.GetWindowText(data);
+
+	int len = WideCharToMultiByte(CP_ACP, 0, data, -1, NULL, 0, NULL, NULL);
+	char *ptxtTemp = new char[len + 1];
+	WideCharToMultiByte(CP_ACP, 0, data, -1, ptxtTemp, len, NULL, NULL);
+
+	LbsData lbsData;
+	lbsData.data = (BYTE*)ptxtTemp;
+	lbsData.length = len;
+	
+	int result = lbsHide.setLbsHideData(m_pMyBmp, &lbsData);
+	if (result == -1) {
+		MessageBox(_T("嵌入错误"), _T("错误"));
+		return;
+	}
+
+	CString text;
+	text.Format(_T("嵌入完成：length=%d, crc32=%8x \r\n"), lbsData.length, lbsData.crc32);
+	addToLog(text, true);
+
+	CString temp = m_szBmpFileName + _T("$$$");
+	len = WideCharToMultiByte(CP_ACP, 0, temp, -1, NULL, 0, NULL, NULL);
+	ptxtTemp = new char[len + 1];
+	WideCharToMultiByte(CP_ACP, 0, temp, -1, ptxtTemp, len, NULL, NULL);
+	m_pMyBmp->saveToFile(ptxtTemp);
+
+	m_Image_Embed.Destroy();
+	// 将外部图像文件装载到CImage对象中 
+	HRESULT hResult = m_Image_Embed.Load(temp);
+	if (FAILED(hResult)) {
+		MessageBox(_T("打开文件失败"), _T("错误"));
+		return;
+	}
+	m_Pic_Embed.SetBitmap(HBITMAP(m_Image_Embed));
+
+
+	delete[] ptxtTemp;
+}
+
+
+void CLSBhideDlg::OnBnClickedBtnSave()
+{
+	if (m_pMyBmp == NULL) {
+		MessageBox(_T("文件未打开"), _T("错误"));
+		return;
+	}
+	CFileDialog dlgFileOpen(FALSE, _T(".bmp"), m_szBmpFileName);
+
+	if (dlgFileOpen.DoModal() != IDOK) {
+		return;
+	}
+		
+
+	CString m_szFileName = dlgFileOpen.GetPathName();
+
+
+	int len = WideCharToMultiByte(CP_ACP, 0, m_szFileName, -1, NULL, 0, NULL, NULL);
+	char *ptxtTemp = new char[len + 1];
+	WideCharToMultiByte(CP_ACP, 0, m_szFileName, -1, ptxtTemp, len, NULL, NULL);
+	m_pMyBmp->saveToFile(ptxtTemp);
+	MessageBox(_T("保存文件成功"), _T("成功"));
+	delete[] ptxtTemp;
 }

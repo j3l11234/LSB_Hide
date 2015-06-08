@@ -48,9 +48,6 @@ public:
 	}
 };
 
-// Crc32::CRC32[256];
-//char Crc32::init;
-
 #endif // !CRC_32_H
 
 
