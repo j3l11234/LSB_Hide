@@ -1,4 +1,9 @@
+#if !defined(CRC_32_H)
+#define CRC_32_H
+
+#if _MSC_VER > 1000
 #pragma once
+#endif // _MSC_VER > 1000
 
 #include "stdafx.h"
 
@@ -43,8 +48,10 @@ public:
 	}
 };
 
-int Crc32::CRC32[256];
-char Crc32::init;
+// Crc32::CRC32[256];
+//char Crc32::init;
+
+#endif // !CRC_32_H
 
 
 

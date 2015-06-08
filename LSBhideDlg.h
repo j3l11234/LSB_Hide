@@ -3,7 +3,9 @@
 //
 
 #pragma once
-
+#include "afxwin.h"
+#include "MyBMP.h"
+#include "LbsHide.hpp"
 
 // CLSBhideDlg 对话框
 class CLSBhideDlg : public CDialogEx
@@ -23,10 +25,19 @@ public:
 protected:
 	HICON m_hIcon;
 
+	CStatic m_Pic_Original; //原图控件
+	CStatic m_Pic_Embed; //嵌入图控件
+	CString m_szBmpFileName;
+	CImage m_Image_Original;
+	MyBMP *m_pMyBmp = NULL;
+
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnBnClickedBtnOpen();
+	afx_msg void OnDestroy();
 };
