@@ -8,66 +8,81 @@
 
 class LbsData {
 public:
-	BYTE *data;
-	int length;
-	int crc32;
+	BYTE *data = NULL;
+	unsigned int length;
+	unsigned int crc32;
+
+	~LbsData() {
+		if (data != NULL) {
+			delete[] data;
+		}
+	}
 };
 
 class LbsHide {
+protected:
 
 public:
-	int setLbsData(MyBMP* bmp, LbsData lbsData) {
+	int setLbsData(MyBMP* bmp, BYTE *lbsData, int length) {
 		BYTE *imagedata = bmp->getImagedata();
-		int maxLength = bmp->getMaxLbsLength() - 8;
-		if (lbsData.length > maxLength) {
-			lbsData.length = maxLength;
-		}
-		lbsData.crc32 = Crc32::crc32(lbsData.data, lbsData.length);
-		printf("crc32=%x\n", lbsData.crc32);
+		int maxLength = bmp->getMaxLbsLength();
 
-		BYTE *headerData = new BYTE[8];
-		intTobytes(lbsData.length, headerData, 0);
-		intTobytes(lbsData.crc32, headerData, 4);
-		for (int i = 0; i < 8; i++) {
-			byteTobits(headerData[i], imagedata, i * 8);
+		if (length > maxLength) {
+			return -1;
 		}
-		delete[] headerData;
 
-		for (int i = 0; i < lbsData.length; i++) {
-			byteTobits(lbsData.data[i], imagedata, (i + 8) * 8);
+		for (int i = 0; i < length; i++) {
+			byteTobits(lbsData[i], imagedata, i * 8);
 		}
 		bmp->setImagedata(imagedata);
 
 		delete[] imagedata;
-		return lbsData.length;
+		return length;
 	}
 
-
-	LbsData getLbsData(MyBMP* bmp) {
-		LbsData lbsData;
+	BYTE *getLbsData(MyBMP* bmp) {
 		BYTE *imagedata = bmp->getImagedata();
-		int maxLength = bmp->getMaxLbsLength() - 8;
+		int length = bmp->getMaxLbsLength();
 
-		BYTE *headerData = new BYTE[8];
-
-		for (int i = 0; i < 8; i++) {
-			headerData[i] = bitsToByte(imagedata, i * 8);
-		}
-		lbsData.length = bytestoInt(headerData, 0);
-		lbsData.crc32 = bytestoInt(headerData, 4);
-		printf("crc32=%x\n", lbsData.crc32);
-		delete[] headerData;
-
-		if (lbsData.length > maxLength || lbsData.length < 0) {
-			lbsData.length = maxLength;
-		}
-		lbsData.data = new BYTE[lbsData.length];
-		for (int i = 0; i < lbsData.length; i++) {
-			lbsData.data[i] = bitsToByte(imagedata, (i + 8) * 8);
+		BYTE *lbsData = new BYTE[length];
+		for (int i = 0; i < length; i++) {
+			lbsData[i] = bitsToByte(imagedata, i * 8);
 		}
 		delete[] imagedata;
 
 		return lbsData;
+	}
+
+	int setLbsHideData(MyBMP* bmp, LbsData* lbsHideData) {
+		BYTE *lbsData = new BYTE[lbsHideData->length + 8];
+
+		lbsHideData->crc32 = Crc32::crc32(lbsHideData->data, lbsHideData->length);
+		intTobytes(lbsHideData->length, lbsData, 0);
+		intTobytes(lbsHideData->crc32, lbsData, 4);
+		memcpy(lbsData + 8, lbsHideData->data, lbsHideData->length);
+		
+		int result = setLbsData(bmp, lbsData, lbsHideData->length + 8);
+		delete[] lbsData;
+
+		return result;
+	}
+
+	LbsData *getLbsHideData(MyBMP* bmp) {
+		BYTE *lbsData = getLbsData(bmp);
+		LbsData *lbsHideData = new LbsData;
+		lbsHideData->length = bytestoInt(lbsData, 0);
+		lbsHideData->crc32 = bytestoInt(lbsData, 4);
+
+		int crc32 = Crc32::crc32(lbsHideData->data, lbsHideData->length);
+		unsigned int maxLength = bmp->getMaxLbsLength() - 8;
+		if (lbsHideData->length > maxLength || lbsHideData->crc32 != crc32) {
+			return NULL;
+		}
+
+		lbsHideData->data = new BYTE[lbsHideData->length];
+		memcpy(lbsHideData->data, lbsData + 8, lbsHideData->length);
+
+		return lbsHideData;
 	}
 
 	static void intTobytes(int num, BYTE *data, int offset) {
@@ -112,6 +127,5 @@ public:
 		return byte;
 	}
 
-protected:
 };
 
