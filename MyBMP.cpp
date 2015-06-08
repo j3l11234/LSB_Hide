@@ -16,14 +16,20 @@ using namespace std;
 
 MyBMP::MyBMP(const char *filename)
 {
+
+	quad = NULL;
+	imagedata = NULL;
+
     //从一个文件名生成一个对象，目前为了处理上的简单性，要求图片宽度是4的倍数
 
 	fstream readfile(filename, ios::binary|ios::in);
 
     if (!readfile)
     {
-        cout << "Fail to open." << endl;
-        exit(1);
+        //cout << "Fail to open." << endl;
+        //exit(1);
+		OK = false;
+		return;
     }
     else
     {
@@ -55,6 +61,7 @@ MyBMP::MyBMP(const char *filename)
     }
 
     readfile.close();
+	OK = true;
 }
 
 MyBMP::MyBMP(const MyBMP &bmp)
@@ -92,7 +99,9 @@ MyBMP::~MyBMP()
 {
     if (numQuad > 0)
         delete []quad;
-    delete []imagedata;
+	if (imagedata != NULL) {
+		delete[]imagedata;
+	}
 }
 
 BITMAPFILEHEADER MyBMP::getFileheader()

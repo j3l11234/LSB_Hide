@@ -17,6 +17,7 @@
 class MyBMP
 {
 public:
+	bool OK;
 
     int getWidth();
 
