@@ -29,6 +29,7 @@ protected:
 	CStatic m_Pic_Embed; //嵌入图控件
 	CString m_szBmpFileName;
 	CImage m_Image_Original;
+	CEdit m_Edit_LOG;
 	MyBMP *m_pMyBmp = NULL;
 
 	// 生成的消息映射函数
@@ -37,6 +38,7 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
+	void addToLog(CString text,bool append);
 public:
 	afx_msg void OnBnClickedBtnOpen();
 	afx_msg void OnDestroy();

@@ -59,6 +59,7 @@ void CLSBhideDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_PIC_ORIGINAL, m_Pic_Original);
 	DDX_Control(pDX, IDC_PIC_EMBED, m_Pic_Embed);
+	DDX_Control(pDX, IDC_EDIT_LOG, m_Edit_LOG);
 }
 
 BEGIN_MESSAGE_MAP(CLSBhideDlg, CDialogEx)
@@ -67,6 +68,8 @@ BEGIN_MESSAGE_MAP(CLSBhideDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BTN_OPEN, &CLSBhideDlg::OnBnClickedBtnOpen)
 	ON_WM_DESTROY()
+	ON_BN_CLICKED(IDC_BTN_READ, &CLSBhideDlg::OnBnClickedBtnRead)
+	ON_BN_CLICKED(IDC_BTN_EMBED, &CLSBhideDlg::OnBnClickedBtnEmbed)
 END_MESSAGE_MAP()
 
 
@@ -190,18 +193,30 @@ void CLSBhideDlg::OnBnClickedBtnOpen()
 			MessageBox(_T("打开文件失败"), _T("错误"));
 			delete m_pMyBmp;
 			m_pMyBmp = NULL;
-		} else {
-			m_Image_Original.Destroy();
-			// 将外部图像文件装载到CImage对象中 
-			HRESULT hResult = m_Image_Original.Load(m_szBmpFileName);
-			if (FAILED(hResult)) {
-				MessageBox(_T("打开文件失败"), _T("错误"));
-				delete m_pMyBmp;
-				m_pMyBmp = NULL;
-				return;
-			}
-			m_Pic_Original.SetBitmap(HBITMAP(m_Image_Original));
+			return;
 		}
+
+		m_Image_Original.Destroy();
+		// 将外部图像文件装载到CImage对象中 
+		HRESULT hResult = m_Image_Original.Load(m_szBmpFileName);
+		if (FAILED(hResult)) {
+			MessageBox(_T("打开文件失败"), _T("错误"));
+			delete m_pMyBmp;
+			m_pMyBmp = NULL;
+			return;
+		}
+		m_Pic_Original.SetBitmap(HBITMAP(m_Image_Original));
+		unsigned int maxLbsLength = m_pMyBmp->getMaxLbsLength() - 8;
+		CString text;
+		if (maxLbsLength <= 0) {
+			text.Format(_T("文件打开完成，无法写入\r\n"));
+		}
+		else {
+			text.Format(_T("文件打开完成，可写入%d字节\r\n"), maxLbsLength);
+		}
+		
+		addToLog(text,true);
+		
 	}
 }
 
@@ -215,5 +230,33 @@ void CLSBhideDlg::OnDestroy()
 	if (m_pMyBmp != NULL) {
 		delete m_pMyBmp;
 		m_pMyBmp = NULL;
+	}
+}
+
+void CLSBhideDlg::addToLog(CString text, bool append) {
+	CString logText;
+	m_Edit_LOG.GetWindowText(logText);
+	if (append) {
+		logText.Append(text);
+	} else {
+		logText = text;
+	}
+	m_Edit_LOG.SetWindowText(logText);
+}
+
+void CLSBhideDlg::OnBnClickedBtnRead()
+{
+	if (m_pMyBmp == NULL) {
+		MessageBox(_T("文件未打开"), _T("错误"));
+		return;
+	}
+}
+
+
+void CLSBhideDlg::OnBnClickedBtnEmbed()
+{
+	if (m_pMyBmp == NULL) {
+		MessageBox(_T("文件未打开"), _T("错误"));
+		return;
 	}
 }
