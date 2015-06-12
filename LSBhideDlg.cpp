@@ -61,6 +61,7 @@ void CLSBhideDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PIC_EMBED, m_Pic_Embed);
 	DDX_Control(pDX, IDC_EDIT_LOG, m_Edit_LOG);
 	DDX_Control(pDX, IDC_EDIT_DATA, m_Edit_Data);
+	DDX_Control(pDX, IDC_EDIT_KEY, m_Edit_Key);
 }
 
 BEGIN_MESSAGE_MAP(CLSBhideDlg, CDialogEx)
@@ -72,6 +73,8 @@ BEGIN_MESSAGE_MAP(CLSBhideDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_READ, &CLSBhideDlg::OnBnClickedBtnRead)
 	ON_BN_CLICKED(IDC_BTN_EMBED, &CLSBhideDlg::OnBnClickedBtnEmbed)
 	ON_BN_CLICKED(IDC_BTN_SAVE, &CLSBhideDlg::OnBnClickedBtnSave)
+	ON_BN_CLICKED(IDC_BTN_NOISE, &CLSBhideDlg::OnBnClickedBtnNoise)
+	ON_BN_CLICKED(IDC_BTN_STAT, &CLSBhideDlg::OnBnClickedBtnStat)
 END_MESSAGE_MAP()
 
 
@@ -254,17 +257,29 @@ void CLSBhideDlg::OnBnClickedBtnRead()
 		MessageBox(_T("文件未打开"), _T("错误"));
 		return;
 	}
-	LbsData *lbsdata = lbsHide.getLbsHideData(m_pMyBmp);
-	if (lbsdata == NULL) {
+
+	LbsData lbsdata;
+	CString key;
+	m_Edit_Key.GetWindowText(key);
+	if (key.Compare(_T("")) != 0) {
+		int keyLen = WideCharToMultiByte(CP_ACP, 0, key, -1, NULL, 0, NULL, NULL);
+		char *pKeyTemp = new char[keyLen + 1];
+		WideCharToMultiByte(CP_ACP, 0, key, -1, pKeyTemp, keyLen, NULL, NULL);
+
+		lbsdata.keyData = (BYTE*)pKeyTemp;
+		lbsdata.keyLength = keyLen;
+	}
+
+	int result = lbsHide.getLbsHideData(m_pMyBmp, &lbsdata);
+	if (result == -1) {
 		MessageBox(_T("LBS读取错误"), _T("错误"));
 		return;
 	}
 
 	CString text;
-	CString data(lbsdata->data);
-	text.Format(_T("读取完成：length=%d, crc32=%8x \r\n====data=====\r\n%s\r\n====data=====\r\n"), lbsdata->length, lbsdata->crc32, data);
+	CString data(lbsdata.data);
+	text.Format(_T("读取完成：length=%d, crc32=%8x \r\n====data=====\r\n%s\r\n====data=====\r\n"), lbsdata.length, lbsdata.crc32, data);
 	addToLog(text,true);
-	delete lbsdata;
 }
 
 
@@ -285,7 +300,18 @@ void CLSBhideDlg::OnBnClickedBtnEmbed()
 	LbsData lbsData;
 	lbsData.data = (BYTE*)ptxtTemp;
 	lbsData.length = len;
-	
+
+	CString key;
+	m_Edit_Key.GetWindowText(key);
+	if (key.Compare(_T("")) != 0) {
+		int keyLen = WideCharToMultiByte(CP_ACP, 0, key, -1, NULL, 0, NULL, NULL);
+		char *pKeyTemp = new char[keyLen + 1];
+		WideCharToMultiByte(CP_ACP, 0, key, -1, pKeyTemp, keyLen, NULL, NULL);
+
+		lbsData.keyData = (BYTE*)pKeyTemp;
+		lbsData.keyLength = keyLen;
+	}
+
 	int result = lbsHide.setLbsHideData(m_pMyBmp, &lbsData);
 	if (result == -1) {
 		MessageBox(_T("嵌入错误"), _T("错误"));
@@ -338,4 +364,43 @@ void CLSBhideDlg::OnBnClickedBtnSave()
 	m_pMyBmp->saveToFile(ptxtTemp);
 	MessageBox(_T("保存文件成功"), _T("成功"));
 	delete[] ptxtTemp;
+}
+
+
+void CLSBhideDlg::OnBnClickedBtnNoise() {
+	if (m_pMyBmp == NULL) {
+		MessageBox(_T("文件未打开"), _T("错误"));
+		return;
+	}
+
+	unsigned int maxLength = m_pMyBmp->getMaxLbsLength();
+	BYTE *noiceData = new BYTE[maxLength];
+	srand((unsigned)time(NULL));
+	for (unsigned int i = 0; i < maxLength; i++) {
+		noiceData[i] = rand();
+	}
+	int result = lbsHide.setLbsData(m_pMyBmp, noiceData, maxLength);
+	delete[] noiceData;
+
+	if (result == -1) {
+		MessageBox(_T("写入失败"), _T("错误"));
+	}
+	else {
+		MessageBox(_T("写入噪声成功"), _T("错误")); 
+	}
+
+}
+
+
+void CLSBhideDlg::OnBnClickedBtnStat()
+{
+	// TODO:  在此添加控件通知处理程序代码
+
+	int *result = lbsHide.statBinary(m_pMyBmp);
+
+	CString text;
+	text.Format(_T("统计结果：length=%d, 0:%d, 1:%d \r\n"), result[0], result[1], result[2]);
+	addToLog(text, true);
+
+	delete[]result;
 }

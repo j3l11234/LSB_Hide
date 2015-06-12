@@ -11,10 +11,14 @@ public:
 	BYTE *data = NULL;
 	unsigned int length;
 	unsigned int crc32;
-
+	BYTE *keyData = NULL;
+	unsigned int keyLength;
 	~LbsData() {
 		if (data != NULL) {
 			delete[] data;
+		}
+		if (keyData != NULL) {
+			delete[] keyData;
 		}
 	}
 };
@@ -55,42 +59,116 @@ public:
 
 	int setLbsHideData(MyBMP* bmp, LbsData* lbsHideData) {
 		BYTE *lbsData = new BYTE[lbsHideData->length + 8];
-
 		lbsHideData->crc32 = Crc32::crc32(lbsHideData->data, lbsHideData->length);
 		intTobytes(lbsHideData->length, lbsData, 0);
 		intTobytes(lbsHideData->crc32, lbsData, 4);
 		memcpy(lbsData + 8, lbsHideData->data, lbsHideData->length);
 		
-		int result = setLbsData(bmp, lbsData, lbsHideData->length + 8);
+		unsigned int keyCrc32 = 0;
+		if (lbsHideData->keyData != NULL) {
+			keyCrc32 = Crc32::crc32(lbsHideData->keyData, lbsHideData->keyLength);
+		}
+
+		unsigned int maxLength = bmp->getMaxLbsLength();
+		unsigned int lbsDataLength = lbsHideData->length + 8;
+		BYTE *newlbsData = getLbsData(bmp);
+		BYTE *newlbsDataMap = new BYTE[maxLength];
+		memset(newlbsDataMap, 0, maxLength * sizeof(BYTE));
+		unsigned int next = keyCrc32;
+
+		for (unsigned int i = 0; i < lbsDataLength; i++) {
+			while (true) {
+				next = imrand(next);
+				if (newlbsDataMap[next % maxLength] == 0) {
+					break;
+				}
+			}
+			newlbsData[next % maxLength] = lbsData[i];
+			newlbsDataMap[next % maxLength] = 1;
+		}
+		int result = setLbsData(bmp, newlbsData, maxLength);
+		delete[]newlbsDataMap;
+		delete[] newlbsData;
 		delete[] lbsData;
 
 		return result;
 	}
 
-	LbsData *getLbsHideData(MyBMP* bmp) {
+	int getLbsHideData(MyBMP* bmp, LbsData* lbsHideData) {
 		BYTE *lbsData = getLbsData(bmp);
-		LbsData *lbsHideData = new LbsData;
-		lbsHideData->length = bytestoInt(lbsData, 0);
-		lbsHideData->crc32 = bytestoInt(lbsData, 4);
-		
-		unsigned int maxLength = bmp->getMaxLbsLength() - 8;
+		unsigned int keyCrc32 = 0;
+		if (lbsHideData->keyData != NULL) {
+			keyCrc32 = Crc32::crc32(lbsHideData->keyData, lbsHideData->keyLength);
+		}
+
+		unsigned int maxLength = bmp->getMaxLbsLength();
+		unsigned int offset = keyCrc32 % maxLength;
+
+		BYTE *lbsHeaderData = new BYTE[8];
+		BYTE *newlbsDataMap = new BYTE[maxLength];
+		memset(newlbsDataMap, 0, maxLength * sizeof(BYTE));
+		unsigned int next = keyCrc32;
+
+		for (unsigned int i = 0; i < 8; i++) {
+			while (true) {
+				next = imrand(next);
+				if (newlbsDataMap[next % maxLength] == 0) {
+					break;
+				}
+			}
+			lbsHeaderData[i] = lbsData[next % maxLength];
+			newlbsDataMap[next % maxLength] = 1;
+		}
+		lbsHideData->length = bytestoInt(lbsHeaderData, 0);
+		lbsHideData->crc32 = bytestoInt(lbsHeaderData, 4);
+		delete[] lbsHeaderData;
+
 		if (lbsHideData->length > maxLength) {
-			delete []lbsData;
-			delete lbsHideData;
-			return NULL;
+			delete[]lbsData;
+			return -1;
 		}
 
 		lbsHideData->data = new BYTE[lbsHideData->length];
-		memcpy(lbsHideData->data, lbsData + 8, lbsHideData->length);
-		int crc32 = Crc32::crc32(lbsHideData->data, lbsHideData->length);
-		if (lbsHideData->crc32 != crc32) {
-			delete[]lbsData;
-			delete lbsHideData;
-			return NULL;
+		for (unsigned int i = 0; i < lbsHideData->length; i++) {
+			while (true) {
+				next = imrand(next);
+				if (newlbsDataMap[next % maxLength] == 0) {
+					break;
+				}
+			}
+			lbsHideData->data[i] = lbsData[next % maxLength];
+			newlbsDataMap[next % maxLength] = 1;
 		}
 
-		delete[]lbsData;
-		return lbsHideData;
+		int crc32 = Crc32::crc32(lbsHideData->data, lbsHideData->length);
+		if (lbsHideData->crc32 != crc32) {
+			delete []lbsData;
+			delete[]lbsHideData->data;
+			return -1;
+		}
+
+		delete []lbsData;
+		return 1;
+	}
+
+	int* statBinary(MyBMP* bmp) {
+		BYTE *imagedata = bmp->getImagedata();
+		int length = bmp->getMaxLbsLength();
+		int count0 = 0, count1 = 0;
+		for (int i = 0; i < length; i++) {
+			if ((imagedata[i] & 0x01) == 1) {
+				count1++;
+			}
+			else {
+				count0++;
+			}
+		}
+		int *result = new int[3];
+		result[0] = length;
+		result[1] = count0;
+		result[2] = count1;
+
+		return result;
 	}
 
 	static void intTobytes(int num, BYTE *data, int offset) {
@@ -135,4 +213,8 @@ public:
 		return byte;
 	}
 
+	static unsigned int imrand(unsigned int next) {
+		next = next * 1103515245 + 12345;
+		return (int)(next) % 0x7fffffff;
+	}
 };

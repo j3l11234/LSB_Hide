@@ -48,4 +48,7 @@ public:
 	afx_msg void OnBnClickedBtnEmbed();
 	CEdit m_Edit_Data;
 	afx_msg void OnBnClickedBtnSave();
+	afx_msg void OnBnClickedBtnNoise();
+	afx_msg void OnBnClickedBtnStat();
+	CEdit m_Edit_Key;
 };
